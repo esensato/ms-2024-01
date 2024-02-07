@@ -140,8 +140,9 @@ public static void main(String[] args) {
     Calculadora calc = (Calculadora) ctx.getBean("calculadora");
     calc.executar();
     ```
-## Injeção por Pripriedades
+## Injeção por Propriedades
 
+- Alterar a classe `Calculadora`
     ```java
     public class Calculadora {
     
