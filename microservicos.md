@@ -4,7 +4,7 @@
 
 ## Injeção de Dependência
 
-- Incluir as dependências do projeto (`pom.xml`)
+- Incluir as dependências do projeto (`pom.xml`) - opcional se estiver utilizando *Spring Boot*
     ```xml
     <dependency>
     	<groupId>org.springframework</groupId>
@@ -165,4 +165,125 @@ public static void main(String[] args) {
      <property name="operacao" ref="somar" />
     </bean>
     ```
+## Auto-Scan
 
+- Considerar o `beans.xml`
+    ```xml
+    <context:annotation-config />
+    <context:component-scan base-package="beans.Calculadora" />
+    ```
+- Classe `Calculadora`
+    ```java
+    @Service
+    public class Calculadora {
+    
+        @Autowired()
+        private Operacao operacao;
+    
+        public float executar(float v1, float v2) {
+            return operacao.executar(v1, v2);
+        }
+    }
+    ```
+- Classe `Somar`
+    ```java
+    @Service
+    public class Somar implements Operacao {
+    
+        @Override
+        public float executar(float v1, float v2) {
+            return v1 + v2;
+        }
+    
+    }
+    ```
+- Testar
+    ```java
+    ApplicationContext ctx = new ClassPathXmlApplicationContext("beans2.xml");
+    Calculadora calc = ctx.getBean(Calculadora.class);
+    System.out.println(calc.executar(10, 20));
+    ```
+## Criando um End-Point
+
+    ```java
+    import org.springframework.web.bind.annotation.RestController;
+    import org.slf4j.Logger;
+    import org.slf4j.LoggerFactory;
+    import org.springframework.web.bind.annotation.GetMapping;
+    import org.springframework.web.bind.annotation.RequestMapping;
+    
+    @RestController
+    @RequestMapping("/aluno")
+    public class Aluno {
+        private static final Logger logger = LoggerFactory.getLogger(Aluno.class);
+    
+        @GetMapping("/obter")
+        public String getAluno() {
+            logger.debug("Retornando aluno Joao...");
+            return "Joao";
+        }
+    
+    }
+    ```
+- Utilizando `ResponseEntity`
+    ```java
+    @GetMapping("/obter")
+    public ResponseEntity<String> getAluno() {
+      return new ResponseEntity<String>("Joao", HttpStatus.OK);
+    }
+    ```
+- [Códigos Status HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+
+### Obtendo Parâmetros
+
+- Na própria URL
+
+    ```java
+    @GetMapping("/obter/{id}")
+    public String getAlunoPorNome(@PathVariable String id) {
+      logger.debug("Retornando aluno com id = " + id);
+      return "Encontrado aluno: " + id;
+    }
+    ```
+- Via parâmetros
+
+    ```java
+    @GetMapping("/obter")
+    public String getAlunoPorNome(@RequestParam(name="id", required = false, defaultValue = "0") String id) {
+      logger.debug("Retornando aluno com id = " + id);
+      return "Encontrado aluno: " + id;
+    }
+    ```
+
+### Retornando JSON
+
+- Criar uma classe para encapsular os atributos
+    ```java
+    public class AlunoBean {
+    
+    private String id;
+    private String nome;
+    
+    @JsonIgnore
+    private String senha;
+
+    public AlunoBean(String id, String nome) {
+      super();
+      this.id = id;
+      this.nome = nome;
+    }
+    // criar os gets / sets
+    
+    }
+    ```
+
+### Processando POST
+
+    ```java
+    @PostMapping("/cadastrar")
+    public ResponseEntity<Integer> cadastrar(@RequestBody AlunoBean aluno) {
+        logger.debug("Cadastrando aluno: " + aluno.getNome());
+        return new ResponseEntity<Integer>(Integer.parseInt("1"), HttpStatus.OK);
+    }
+    ```
+    
