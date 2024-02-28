@@ -204,7 +204,7 @@ public static void main(String[] args) {
     System.out.println(calc.executar(10, 20));
     ```
 ## Criando um End-Point
-
+- Criar um *endpoint* para uma requisição *GET*
     ```java
     import org.springframework.web.bind.annotation.RestController;
     import org.slf4j.Logger;
@@ -234,7 +234,22 @@ public static void main(String[] args) {
     ```
 - [Códigos Status HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
 
-### Obtendo Parâmetros
+## Trabalhando com Propriedades
+- Editar o arquivo `application.properties`
+- Por exemplo, definir o nível de *log*
+
+    ```properties
+    logging.level.org.springframework.web: DEBUG
+    logging.level.nome.pacote: DEBUG
+    ```
+- Pode-se criar qualquer tipo de propriedade
+- Para ler uma propriedade basta utilizar a injeção de dependência com `@Value`
+    ```java
+    @Value("${mensagem}")
+    private String mensagem;
+    ```
+- Lê o valor da propriedade `mensagem` definida no arquivo `application.properties`
+## Obtendo Parâmetros
 
 - Na própria URL
 
@@ -255,7 +270,7 @@ public static void main(String[] args) {
     }
     ```
 
-### Retornando JSON
+## Retornando JSON
 
 - Criar uma classe para encapsular os atributos
     ```java
@@ -276,9 +291,17 @@ public static void main(String[] args) {
     
     }
     ```
+- Para retornar *XML*
 
-### Processando POST
-
+    ```xml
+    <dependency>
+    <groupId>com.fasterxml.jackson.dataformat</groupId>
+    <artifactId>jackson-dataformat-xml</artifactId>
+    </dependency>
+    ```
+- Alterar o parâmetro do *header* da requisição `Accept: application/xml`
+## Processando POST
+- Processando requisições do tipo *POST*
     ```java
     @PostMapping("/cadastrar")
     public ResponseEntity<Integer> cadastrar(@RequestBody AlunoBean aluno) {
@@ -286,4 +309,207 @@ public static void main(String[] args) {
         return new ResponseEntity<Integer>(Integer.parseInt("1"), HttpStatus.OK);
     }
     ```
+## Tratamento de Erros
+- Criar uma classe para encapsular o tipo de exceção
+    ```java
+    public class AlunoNaoLocalizadoException extends Throwable {
+    }
+    ```
+- Definir uma classe para lidar com as exceções
+    ```java
+    @ControllerAdvice
+    public class ApplicationExceptionHandler {
+        @ResponseStatus(
+                value = HttpStatus.NOT_FOUND,
+                reason = "Aluno não localizado!")
+        @ExceptionHandler(AlunoNaoLocalizadoException.class)
+        public void handleException(AlunoNaoLocalizadoException e) {
     
+        }
+    
+    }
+    ```
+- Lançar a exceção, quando aplicado
+    ```java
+    throw new AlunoNaoLocalizadoException();
+    ```
+## Validação de Dados
+- Utilizar o `spring-boot-starter-validation`
+    ```xml
+    <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    ```
+- [Referência](https://docs.oracle.com/javaee/7/api/javax/validation/constraints/package-summary.html)
+- Exemplo
+    ```java
+    @PostMapping
+    public ResponseEntity<AlunoBean> criar(@Valid @RequestBody AlunoBean aluno) {
+    return new ResponseEntity<AlunoBean>(aluno, HttpStatus.OK);
+    }
+    ```
+- Na classe `AlunoBean` definir as restrições
+    ```java
+    @Size(min = 10, message="Nome deve conter no minimo 10 caracteres")
+    private String nome;
+    ```
+- Definir o tratamento de erro no *Controller*
+    ```java
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<String, String>();
+     
+        ex.getBindingResult().getFieldErrors().forEach(error -> 
+            errors.put(error.getField(), error.getDefaultMessage()));
+         
+        return errors;
+    }
+    ```
+## Persistência
+- Utilizar o `spring-boot-starter-data-jpa`
+    ```xml
+    <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    
+    <dependency>
+     <groupId>com.h2database</groupId>
+     <artifactId>h2</artifactId>
+     <scope>runtime</scope>
+    </dependency>
+    ```
+- [Console H2](http://localhost:8080/h2-console)
+- Configurar o **H2**
+    ```properties
+    spring.datasource.url=jdbc:h2:mem:testdb
+    spring.datasource.driverClassName=org.h2.Driver
+    spring.datasource.username=sa
+    spring.datasource.password=password
+    spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+    spring.h2.console.enabled=true
+    ```
+- Criar um arquivo `data.sql` dentro da pasta `resources`
+    ```sql
+    DROP TABLE IF EXISTS tab_aluno;
+     
+    CREATE TABLE tab_aluno (
+      id_aluno INT AUTO_INCREMENT PRIMARY KEY,
+      nome VARCHAR(30) NOT NULL,
+      turma VARCHAR(10) NOT NULL,
+      curso VARCHAR(50) DEFAULT NULL
+    );
+    ```
+- Definir o *Bean* para a persistência
+    ```java
+    @Entity(name="TAB_ALUNO")
+    public class AlunoEntity {
+    @Id
+    @Column(name = "ID_ALUNO")
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private int id;
+    private String nome;
+    private String turma;
+    private String curso; 
+    // getters e setters
+    ```
+- Criar o repositório
+    ```java
+    @Repository
+    public interface AlunoRepository extends CrudRepository<AlunoEntity, Integer>{
+    }
+    ```
+- Métodos disponíveis de `CrudRepository`
+    - `save(entidade)` – persiste uma entidade (insert / update)
+    - `deleteById(id)` – remove um registro por meio do id
+    - `deleteAll()` – remove todos os registros
+    - `findAll()` – retorna todos os registros
+    - `findById(id)` – localiza um registro por meio do id
+    - `count()` – retorna o número total de registros
+    - `existis(id)` – verifica se um registro existe com base em seu id
+- Utilizando no *controller*
+    ```java
+    @RestController
+    @RequestMapping(value = "aluno")
+    public class AlunoService {
+    
+    @Autowired
+    private AlunoRepository alunoRepo = null;
+    
+    @PostMapping(value="/cadastrar")
+    public AlunoEntity cadastrar(@RequestBody AlunoEntity aluno) {
+      return alunoRepo.save(aluno);
+    }
+    
+    }
+    ```
+- Retornando uma lista
+    ```java
+    @GetMapping(value="/obter")
+    public List<AlunoEntity> getAluno() {
+    List<AlunoEntity> ret = new ArrayList<AlunoEntity>();
+     for (AlunoEntity aluno:alunoRepo.findAll()) {
+      ret.add(aluno);
+     }
+      return ret;
+    
+    }
+    ```
+- Outra opção
+    ```java
+    @GetMapping("/obter")
+    public ResponseEntity<Iterable<AlunoBean>> obterTodos() {
+    return new ResponseEntity<Iterable<AlunoBean>>(dao.findAll(), HttpStatus.OK);
+    }
+    ```
+## Consultas Derivadas
+- [Referência](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods)
+- É possível criar consultas simples porém de forma muito eficiente utilizando-se consultas derivadas, isto é, que seguem um determinado padrão de nomenclatura envolvendo nomes de atributos da entidade
+- Por exemplo, `findByNome (String nome)` efetua uma busca utilizando como chave o atributo nome
+- Outros exemplos:
+    - `findByNomeIsNot(String nome)` – nomes diferentes de...
+    - `findByTurmaIsNull()` – alunos onde o atributo turma seja nulo
+    - `findByNomeContaining(String prefixo)` – alunos cujo nome contenha o prefixo informado
+    - `findByNomeLike(String expressao)` – efetua um like no nome, por exemplo, %Joao%
+## Consultas Personalizadas
+- Além das consultas derivadas também é possível criar consultas personalizadas informando o código SQL diretamente
+    ```java
+    @Query("select a from GASTO_BEAN a where a.username = ?1")
+    List<AlunoEntity> alunosPorTurma(String username);
+    ```
+## Aplicação Console
+- Para executar uma aplicação Spring Boot no console
+    ```java
+    @SpringBootApplication
+    public class ConsoleSpring implements CommandLineRunner {
+    
+        public static void main(String[] args) {
+            SpringApplication.run(ConsoleSpring.class, args);
+        }
+    
+        @Override
+        public void run(String... args) throws Exception {
+    
+        }
+    
+    }
+    ```
+## Efetuando Requisições HTTP
+- Utilizar o `RestTemplate`
+    ```java
+    RestTemplate restTemplate = new RestTemplate();
+    final String url = "http://localhost:8080/aluno/1";
+    ResponseEntity<AlunoBean> response = restTemplate.getForEntity(url, AlunoBean.class);
+    System.out.println(response.getBody());
+    ```
+## Exercício
+- Implementar um serviço CRUD para turma com os seguintes requisitos:
+- Turma possui um id numérico sequencial, um nome de identificação e o total de alunos;
+- Criar um endpoint com método POST para criar uma nova turma;
+- Criar um endpoint com um método PUT que permita receber um número de alunos para incrementar o número atual de alunos na turma. Exemplo:
+    - PUT – `http://localhost:8080/T100/10` – incrementa em 10 o total de alunos na turma T100
+- Criar um endpoint com um método DELETE que permita receber um número de alunos para diminuir o número atual de alunos na turma. Exemplo:
+    - DELETE – `http://localhost:8080/T100/5` – diminui em 5 o total de alunos na turma T100
+- Criar um endpoint para retornar o total de alunos matriculados em todas as turmas
