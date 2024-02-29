@@ -204,6 +204,20 @@ public static void main(String[] args) {
     System.out.println(calc.executar(10, 20));
     ```
 ## Criando um End-Point
+- Adicionar as dependências abaixo no `pom.xml`
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+        <scope>runtime</scope>
+        <optional>true</optional>
+    </dependency>
+    ```
 - Criar um *endpoint* para uma requisição *GET*
     ```java
     import org.springframework.web.bind.annotation.RestController;
