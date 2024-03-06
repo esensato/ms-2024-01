@@ -493,6 +493,18 @@ public static void main(String[] args) {
     @Query("select a from GASTO_BEAN a where a.username = ?1")
     List<AlunoEntity> alunosPorTurma(String username);
     ```
+## Data Rest
+- Permite criar endpoints diretamente do repositório
+    ```xml
+    <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-rest</artifactId>
+    </dependency>
+    ```
+- Adicionar uma configuração `spring.data.rest.basePath=/api`
+- Para testar: `http://localhost:8080/api`
+- [Referência] (https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference)
+
 ## Aplicação Console
 - Para executar uma aplicação Spring Boot no console
     ```java
@@ -519,11 +531,17 @@ public static void main(String[] args) {
     System.out.println(response.getBody());
     ```
 ## Exercício
-- Implementar um serviço CRUD para turma com os seguintes requisitos:
-- Turma possui um id numérico sequencial, um nome de identificação e o total de alunos;
-- Criar um endpoint com método POST para criar uma nova turma;
-- Criar um endpoint com um método PUT que permita receber um número de alunos para incrementar o número atual de alunos na turma. Exemplo:
-    - PUT – `http://localhost:8080/T100/10` – incrementa em 10 o total de alunos na turma T100
-- Criar um endpoint com um método DELETE que permita receber um número de alunos para diminuir o número atual de alunos na turma. Exemplo:
-    - DELETE – `http://localhost:8080/T100/5` – diminui em 5 o total de alunos na turma T100
-- Criar um endpoint para retornar o total de alunos matriculados em todas as turmas
+- Implementar um serviço CRUD para disciplina com os seguintes requisitos:
+    - Disciplina possui um id numérico sequencial, um nome e carga horária;
+    - Criar um endpoint com método POST para criar uma nova disciplina;
+    - Criar um endpoint GET para retornar os dados de uma disciplina por id
+    - Criar um endpoint GET para retornar uma lista contendo todas as disciplinas;
+    - Criar um endpoint com um método PUT que permita alterar o nome e a carga horária de uma disciplina;
+    - Criar um endpoint com um método DELETE que permita excluir uma disciplina;
+- Criar um serviço para controle de matrícula:
+    - Matrícula possui id do aluno, id da disciplina e um status (ATIVO, CANCELADO)
+    - Definir um endpoint para associar o id de um aluno ao id de uma disciplina;
+    - Definir um endpoint para cancelar a matrícula do aluno de uma disciplina alterando o status;
+    - Retornar todas as disciplinas ativas de um determinado aluno;
+    - Retornar a carga horária total de um aluno;
+- Alterar o endpoint DELETE de disciplina para somente permitir excluir uma disciplina que não possua alunos associados;
