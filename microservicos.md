@@ -504,6 +504,7 @@ public static void main(String[] args) {
 - Adicionar uma configuração `spring.data.rest.basePath=/api`
 - Para testar: `http://localhost:8080/api`
 - [Referência] (https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference)
+- Utilizar a anotação `@RestResource`
 
 ## Aplicação Console
 - Para executar uma aplicação Spring Boot no console
