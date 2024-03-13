@@ -524,13 +524,54 @@ public static void main(String[] args) {
     }
     ```
 ## Efetuando Requisições HTTP
-- Utilizar o `RestTemplate`
-    ```java
-    RestTemplate restTemplate = new RestTemplate();
-    final String url = "http://localhost:8080/aluno/1";
-    ResponseEntity<AlunoBean> response = restTemplate.getForEntity(url, AlunoBean.class);
-    System.out.println(response.getBody());
+- Alterar a dependência no `pom.xml` para não incluir o *tomcat* como servidor:
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <exclusions>
+            <exclusion>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-tomcat</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
     ```
+- Utilizar o `RestClient`
+    ```java
+    RestClient restClient = RestClient.create();
+
+    ResponseEntity<String> result = restClient.get()
+            .uri("http://localhost:8080/aluno/1")
+            .retrieve()
+            .toEntity(String.class);
+    System.out.println("Status: " + result.getStatusCode());
+    System.out.println("Headers: " + result.getHeaders());
+    System.out.println("Conteudo: " + result.getBody());
+    ```
+- Encapsular o resultado em um objeto da classe `AlunoBean`:
+    ```java
+    RestClient restClient = RestClient.create();
+    
+    ResponseEntity<AlunoBean> result = restClient.get()
+            .uri("http://localhost:8080/aluno/101")
+            .retrieve()
+            .toEntity(AlunoBean.class);
+    System.out.println("Status: " + result.getStatusCode());
+    System.out.println("Headers: " + result.getHeaders());
+    System.out.println("Conteudo: " + result.getBody().getNome());
+    ```
+- Efetuando um *POST* (sem retorno esperado no corpo da resposta)
+    ```java
+    AlunoBean aluno = new AlunoBean();
+    ResponseEntity<Void> response = restClient.post()
+      .uri("ttp://localhost:8080/aluno")
+      .contentType(APPLICATION_JSON)
+      .body(aluno)
+      .retrieve()
+      .toBodilessEntity();
+    ```
+
 ## Exercício
 - Implementar um serviço CRUD para disciplina com os seguintes requisitos:
     - Disciplina possui um id numérico sequencial, um nome e carga horária;
@@ -546,3 +587,71 @@ public static void main(String[] args) {
     - Retornar todas as disciplinas ativas de um determinado aluno;
     - Retornar a carga horária total de um aluno;
 - Alterar o endpoint DELETE de disciplina para somente permitir excluir uma disciplina que não possua alunos associados;
+- Criar um orquestrador para implementar a exclusão da disciplina
+
+## Documentação Endpoints
+- Padrão [OpenAPI](https://spec.openapis.org/oas/latest.html)
+- Exemplo [Strava API](https://developers.strava.com/swagger/swagger.json)
+- Utilizar o [Swagger](https://swagger.io/) para visualizar a documentação no padrão *OpenAPI*
+- Adicionar a dependência:
+    ```xml
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.2.0</version>
+    </dependency>
+    ```
+- Visualizando os *endpoints*:
+    - Formato JSON: http://localhost:8080/v3/api-docs
+    - Formato YAML: http://localhost:8080/v3/api-docs.yaml
+    - Interface HTML (Swagger): http://localhost:8080/swagger-ui/index.html
+- Anotações para documentação:
+    - End points:
+    ```java
+    @OpenAPIDefinition(info=@Info(title="Controle de Alunos"))
+    ```
+    - Operações: 
+    ```java
+    @Operation(summary = "Lista alunos", description = "Obtem a lista de todos os alunos", tags = { "alunos" })
+    @Parameters(value={@Parameter(name = "id")})
+    ```
+    - Respostas:
+    ```java
+    @ApiResponses(value = {
+    @ApiResponse(responseCode = "200", description = "Encontrou o aluno", content = { @Content(mediaType = "application/json",
+    schema = @Schema(implementation = AlunoBean.class)) }), @ApiResponse(responseCode = "400", description = "Id do aluno inválido",
+    content = @Content),
+    @ApiResponse(responseCode = "404", description = "Aluno não localizado",
+    content = @Content) })
+    ```
+    
+## Geração Clientes
+
+- Em nodejs utilizar o pacote[openapi-client-axios](https://www.npmjs.com/package/openapi-client-axios)
+- Criar um projeto *nodejs*
+```bash
+mkdir cliente-node
+cd cliente-node
+npm init -y
+```
+- Importar o `openape-client-axios`
+```bash
+npm i --save openapi-client-axios
+```
+- Gerar o cliente
+```bash
+npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
+```
+- Efetuar as chamadas aos *endpoints*
+    ```javascript
+    const OpenAPIClientAxios = require("openapi-client-axios").default;
+    
+    const api = new OpenAPIClientAxios({
+        definition: "http://localhost:8080/v3/api-docs",
+    });
+    api.init()
+        .then((client) =>
+            client.getAluno(101)
+        )
+        .then((res) => console.log("Resultado:", res.data));
+    ```
