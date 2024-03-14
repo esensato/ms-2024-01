@@ -61,6 +61,31 @@ public class Aluno {
             throw new AlunoInexistenteException();
     }
 
+    @GetMapping("/curso/{curso}")
+    public ResponseEntity<Iterable<AlunoBean>> todosAlunosPorCurso(@PathVariable String curso)
+            throws AlunoInexistenteException {
+
+        return new ResponseEntity<Iterable<AlunoBean>>(dao.findByCurso(curso), HttpStatus.OK);
+
+    }
+
+    @GetMapping("/curso/{curso}/{turma}")
+    public ResponseEntity<Iterable<AlunoBean>> todosAlunosPorCursoTurma(@PathVariable String curso,
+            @PathVariable String turma)
+            throws AlunoInexistenteException {
+
+        return new ResponseEntity<Iterable<AlunoBean>>(dao.findByCursoAndTurma(curso, turma), HttpStatus.OK);
+
+    }
+
+    @GetMapping("/nome/{nome}")
+    public ResponseEntity<Iterable<AlunoBean>> todosAlunosPorNome(@PathVariable String nome)
+            throws AlunoInexistenteException {
+
+        return new ResponseEntity<Iterable<AlunoBean>>(dao.findByNomeLike("%" + nome + "%"), HttpStatus.OK);
+
+    }
+
     // localhost:8080/aluno/100
     @GetMapping("/{id}")
     public ResponseEntity<AlunoBean> getAlunoByPath(@PathVariable Integer id) throws AlunoInexistenteException {
