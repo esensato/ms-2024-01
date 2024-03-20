@@ -481,6 +481,7 @@ public static void main(String[] args) {
 ## Consultas Derivadas
 - [Referência](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods)
 - É possível criar consultas simples porém de forma muito eficiente utilizando-se consultas derivadas, isto é, que seguem um determinado padrão de nomenclatura envolvendo nomes de atributos da entidade
+- Basta declarar a assinatura do método desejado na interface `@Repository`
 - Por exemplo, `findByNome (String nome)` efetua uma busca utilizando como chave o atributo nome
 - Outros exemplos:
     - `findByNomeIsNot(String nome)` – nomes diferentes de...
@@ -624,6 +625,14 @@ public static void main(String[] args) {
     @ApiResponse(responseCode = "404", description = "Aluno não localizado",
     content = @Content) })
     ```
+- Documentando as entidades
+    ```java
+    @Schema(name="Aluno", description = "Representa um aluno")
+    public class AlunoBeanV1 {
+    @Schema(name = "matricula", description = "Número de matrícula", required = true, example = "M12345")
+    private String matricula;
+    }
+    ```
     
 ## Geração Clientes
 
@@ -655,3 +664,101 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
         )
         .then((res) => console.log("Resultado:", res.data));
     ```
+## Actuator
+- Permite verificar a "saúde" (health) de um serviço, por exemplo, se ele está em execução, sua disponibilidade, configuração, etc...
+- Incluir a seguinte dependência ao projeto:
+    ```xml
+    <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    ```
+- A porta do actuator pode ser alterada por meio da propriedade `management.server.port` (por exemplo, `8081`)
+- Acessar a URL `http://localhost:8081/actuator` ou `http://localhost:8081/actuator/health`
+
+# Health Check Personalizado
+- Um health check personalizado permite especificar quando um determinado serviço está acessível
+    ```java
+    @Component
+    public class AlunoMonitor implements HealthIndicator {
+    
+        @Override
+        public Health health() {
+            return Health.down().build();
+        }
+    
+    }
+    ```
+# Métricas
+- Para habilitar mais *endpoints* alterar `management.endpoints.web.exposure.include=*`
+- Exemplo de uma métrica persinalizada:
+    ```java
+    @Component
+    public class MetricaAluno {
+        MetricaAluno(MeterRegistry registry) {
+            registry.counter("total.alunos", Tags.of("teste", "10"));
+        }
+    }
+    ```
+# Informações
+- Algumas configurações podem ser habilitadas:
+    ```java
+    management.info.java.enabled=true
+    info.app.name=@project.name@
+    info.app.description=@project.description@
+    info.app.version=@project.version@
+    info.app.encoding=@project.build.sourceEncoding@
+    info.app.java.version=@java.version@
+    ```
+# Outros End Points
+- Por meio do actuator é também possível terminar um serviço (propriedade `management.endpoint.shutdown.enabled=true`)
+# Spring Admin Server
+- É uma interface web para administração das aplicações *Spring Boot*
+- Criar um novo projeto *Sprint Boot* e adicionar as dependências:
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    
+    <dependency>
+        <groupId>de.codecentric</groupId>
+        <artifactId>spring-boot-admin-starter-server</artifactId>
+        <version>3.1.5</version>
+    </dependency>
+    ```
+- Especificamente para o **MacOS**
+    ```xml
+    <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-all</artifactId>
+    </dependency>
+    ```
+- Especificar a porta na qual o *Admin Server* irá executar: `server.port=8082`
+- Na classe principal do projeto adicionar as seguintes anotações:
+    ```java
+    @EnableAdminServer
+    @SpringBootApplication
+    public class AdminApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(AdminApplication.class, args);
+    	}
+    
+    }
+    ```
+- Acessar a interface administrativa: `http://localhost:8082`
+- Registrar as aplicações que serão monitoradas, adicionando a dependência:
+    ```xml
+    <dependency>
+        <groupId>de.codecentric</groupId>
+        <artifactId>spring-boot-admin-starter-client</artifactId>
+        <version>3.1.5</version>
+    </dependency>
+    ```
+- Apontar para o *Admin Server* com as propriedades `spring.boot.admin.client.url=http://localhost:8082` e `management.endpoint.health.show-details=always`
