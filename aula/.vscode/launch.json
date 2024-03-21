@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-FaculdadeApplication<faculdade>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "aula.microservicos.faculdade.FaculdadeApplication",
+            "projectName": "faculdade",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

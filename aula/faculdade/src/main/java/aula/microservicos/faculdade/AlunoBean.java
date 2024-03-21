@@ -1,5 +1,7 @@
 package aula.microservicos.faculdade;
 
+import org.springframework.data.rest.core.annotation.RestResource;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 
 @Entity(name = "TAB_ALUNO")
+@RestResource(path = "aluno", exported = false)
 public class AlunoBean {
 
     @Id
