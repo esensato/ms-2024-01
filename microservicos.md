@@ -540,6 +540,7 @@ public static void main(String[] args) {
     
     }
     ```
+- Para maiores configurações [Vide](https://docs.spring.io/spring-data/rest/docs/current/api/org/springframework/data/rest/core/config/RepositoryRestConfiguration.html)
 ## Aplicação Console
 - Para executar uma aplicação Spring Boot no console
     ```java

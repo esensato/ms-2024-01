@@ -10,7 +10,9 @@ public class DataRestConfig implements RepositoryRestConfigurer {
 
     @Override
     public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config, CorsRegistry cors) {
+
         config.exposeIdsFor(MatriculaBean.class, DisciplinaBean.class);
+
     }
 
 }
