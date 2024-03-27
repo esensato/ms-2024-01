@@ -12,6 +12,16 @@ import jakarta.persistence.Id;
 @RestResource(path = "disciplina")
 public class DisciplinaBean {
 
+    public DisciplinaBean() {
+        super();
+    }
+
+    public DisciplinaBean(Integer id, String nome, Integer cargaHoraria) {
+        this.id = id;
+        this.nome = nome;
+        this.cargaHoraria = cargaHoraria;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "ID_DISCIPLINA")

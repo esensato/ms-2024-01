@@ -306,7 +306,6 @@ public static void main(String[] args) {
     }
     ```
 - Para retornar *XML*
-
     ```xml
     <dependency>
     <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -397,13 +396,14 @@ public static void main(String[] args) {
     ```
 - [Console H2](http://localhost:8080/h2-console)
 - Configurar o **H2**
-    ```properties
+    ```javascript
     spring.datasource.url=jdbc:h2:mem:testdb
     spring.datasource.driverClassName=org.h2.Driver
     spring.datasource.username=sa
     spring.datasource.password=password
     spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
     spring.h2.console.enabled=true
+    spring.jpa.defer-datasource-initialization=true
     ```
 - Criar um arquivo `data.sql` dentro da pasta `resources`
     ```sql
@@ -506,7 +506,19 @@ public static void main(String[] args) {
 - Para testar: `http://localhost:8080/api`
 - [Referência] (https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference)
 - Utilizar a anotação `@RestResource`
-
+- Para incluir o atribudo `id` nas respostas das APIs mapeadas pelo *Data Rest*
+    ```java
+    @Component
+    public class DataRestConfig implements RepositoryRestConfigurer {
+    
+        @Override
+        public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config, CorsRegistry cors) {
+            // Incluir as classes Bean que terão seus ids expostos
+            config.exposeIdsFor(MatriculaBean.class, DisciplinaBean.class);
+        }
+    
+    }
+    ```
 ## Aplicação Console
 - Para executar uma aplicação Spring Boot no console
     ```java
@@ -572,23 +584,45 @@ public static void main(String[] args) {
       .retrieve()
       .toBodilessEntity();
     ```
-
+# Trabalhando com JSON
+- Incluir nas dependências do projeto `pom.xml`
+    ```xml
+    <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>20240303</version>
+    </dependency>
+    ```
+- Principais classes e métodos:
+    - `JSONObject`: representa um objeto JSON
+    - `JSONArray`: representa um array JSON
+    - `length()`: retorna o total de objetos contidos no `JSONArray`
+    - `getJSONObject()`, `getJSONArray()`, `getString()`, etc...: retornam o valor de um atributo de um objeto JSON
+# Mapeando Atributos JSON para Objetos
+- Utilizar o `ObjectMapper`:
+    ```java
+    ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    ```
+- Exemplo:
+    ```java
+    DisciplinaBean disciplina = objectMapper.readValue(disciplinas.getJSONObject(i).toString(), DisciplinaBean.class);
+    ```
 ## Exercício
-- Implementar um serviço CRUD para disciplina com os seguintes requisitos:
+- Implementar um serviço CRUD para disciplina com os seguintes requisitos (utilizar *Data Rest*):
     - Disciplina possui um id numérico sequencial, um nome e carga horária;
-    - Criar um endpoint com método POST para criar uma nova disciplina;
-    - Criar um endpoint GET para retornar os dados de uma disciplina por id
-    - Criar um endpoint GET para retornar uma lista contendo todas as disciplinas;
-    - Criar um endpoint com um método PUT que permita alterar o nome e a carga horária de uma disciplina;
-    - Criar um endpoint com um método DELETE que permita excluir uma disciplina;
+    - Criar um endpoint com método POST para criar uma nova disciplina (POST `http://localhost:8080/api/disciplina`);
+    - Criar um endpoint GET para retornar os dados de uma disciplina por id (GET `http://localhost:8080/api/disciplina/{id}`)
+    - Criar um endpoint GET para retornar uma lista contendo todas as disciplinas (GET `http://localhost:8080/api/disciplina`);
+    - Criar um endpoint com um método PUT que permita alterar o nome e a carga horária de uma disciplina (PUT `http://localhost:8080/api/disciplina`);
+    - Criar um endpoint com um método DELETE que permita excluir uma disciplina (DELETE `http://localhost:8080/api/disciplina/{id}`);;
 - Criar um serviço para controle de matrícula:
     - Matrícula possui id do aluno, id da disciplina e um status (ATIVO, CANCELADO)
-    - Definir um endpoint para associar o id de um aluno ao id de uma disciplina;
-    - Definir um endpoint para cancelar a matrícula do aluno de uma disciplina alterando o status;
-    - Retornar todas as disciplinas ativas de um determinado aluno;
-    - Retornar a carga horária total de um aluno;
-- Alterar o endpoint DELETE de disciplina para somente permitir excluir uma disciplina que não possua alunos associados;
-- Criar um orquestrador para implementar a exclusão da disciplina
+    - Definir um endpoint para associar o id de um aluno ao id de uma disciplina (POST `http://localhost:8080/matricula/{idAluno}/{idDisciplina}`);
+    - Definir um endpoint para cancelar a matrícula do aluno de uma disciplina alterando o status (DELETE `http://localhost:8080/matricula/{idAluno}/{idDisciplina}`);
+- Criar um serviço orquestrador chamado faculdade para:
+    - Retornar todas as disciplinas ativas de um determinado aluno (GET `http://localhost:8080/faculdade/disciplinas/{idAluno}`);
+    - Retornar a carga horária total de um aluno (GET `http://localhost:8080/faculdade/carga/{idAluno}`);
+    - Remover uma disciplina (somente permitir excluir uma disciplina que não possua alunos associados) (DELETE `http://localhost:8080/faculdade/disciplinas/{idDisciplina}`);
 
 ## Documentação Endpoints
 - Padrão [OpenAPI](https://spec.openapis.org/oas/latest.html)
@@ -633,9 +667,7 @@ public static void main(String[] args) {
     private String matricula;
     }
     ```
-    
 ## Geração Clientes
-
 - Em nodejs utilizar o pacote[openapi-client-axios](https://www.npmjs.com/package/openapi-client-axios)
 - Criar um projeto *nodejs*
 ```bash
@@ -762,3 +794,51 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     </dependency>
     ```
 - Apontar para o *Admin Server* com as propriedades `spring.boot.admin.client.url=http://localhost:8082` e `management.endpoint.health.show-details=always`
+# Segurança Básica
+- Para garantir um nível de segurança mínimo para os *endpoints* é possível ativar um *starter*
+    ```xml
+    <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    ```
+- Observar após o início do serviço que é getada uma senha automaticamnte para acesso:
+
+    `Using generated security password: 2cee0e0c-3e35-453d-ac8b-f3f040c849cf`
+
+- Por padrão o usuário definido é *user*
+- Ao tentar acessar qualquer *endpoint* sem fornecer as credenciais será gerado um erro HTTP 401 (Unauthorized)
+- Para que seja autorizado o acesso deve-se definir no cabeçalho da requisição o tipo de Autorização *Basic*
+- Caso seja necessário fornecer um usuário e senha padrão basta editar o `application.properties` e definir as seguintes propriedades:
+    ```javascript
+    spring.security.user.name = teste
+    spring.security.user.password = 123
+    ```
+# RestClient
+- Definir no Header da requisição:
+    ```java
+    String plainCreds = "teste:123";
+    byte[] plainCredsBytes = plainCreds.getBytes();
+    byte[] base64CredsBytes = Base64.getEncoder().encode(plainCredsBytes);
+    String base64Creds = new String(base64CredsBytes);
+    ResponseEntity<AlunoBean> response = restClient.get()
+                    .uri("http://localhost:8080/aluno/{idAluno}", idAluno)
+                    .header("Authorization", "Basic " + base64Creds)
+                    .retrieve()
+                    .toEntity(AlunoBean.class);
+    ```
+# Cross Site Request Forgery (CSRF)
+- É uma proteção de segurança que impede que serviços hospedados em servidores distintos sejam acessados mutuamente
+- Para desabilitar o *CSRF*:
+    ```javascript
+    @Configuration
+    public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+           super.configure(http);
+           http.csrf().disable();
+        }
+    }
+    ```
+
