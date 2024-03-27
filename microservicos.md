@@ -494,14 +494,35 @@ public static void main(String[] args) {
     @Query("select a from GASTO_BEAN a where a.username = ?1")
     List<AlunoEntity> alunosPorTurma(String username);
     ```
+- Exemplos:
+    ```java
+    @Repository
+    public interface AlunoDAO extends CrudRepository<AlunoBean, Integer> {
+    
+        // sempre inicia com findBy...
+        // incluir nome do atributo
+        Iterable<AlunoBean> findByCurso(String curso);
+    
+        // SELECT * FROM TAB_CURSO WHERE CURSO = ? AND TURMA = ?
+        Iterable<AlunoBean> findByCursoAndTurma(String curso, String turma);
+    
+        // SELECT * FROM TAB_ALUNO WHERE NOME LIKE ?
+        Iterable<AlunoBean> findByNomeLike(String nome);
+    
+        @Query("select a.id from TAB_ALUNO a")
+        Iterable<Integer> minhaConsulta();
+    
+    }
+    ```
 ## Data Rest
-- Permite criar endpoints diretamente do repositório
+- Permite criar endpoints diretamente do repositório sem a necessidade de um *controller*
     ```xml
     <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-rest</artifactId>
     </dependency>
     ```
+- Criar apenas a interface anotada como `@Repository` e estendendo `CrudRepository`
 - Adicionar uma configuração `spring.data.rest.basePath=/api`
 - Para testar: `http://localhost:8080/api`
 - [Referência] (https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference)
