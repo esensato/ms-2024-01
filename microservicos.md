@@ -525,7 +525,7 @@ public static void main(String[] args) {
 - Criar apenas a interface anotada como `@Repository` e estendendo `CrudRepository`
 - Adicionar uma configuração `spring.data.rest.basePath=/api`
 - Para testar: `http://localhost:8080/api`
-- (Referência) [https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference]
+- [Referência](https://docs.spring.io/spring-data/rest/docs/current-SNAPSHOT/reference/html/#reference)
 - Utilizar a anotação `@RestResource`
 - Para incluir o atribudo `id` nas respostas das APIs mapeadas pelo *Data Rest*
     ```java
