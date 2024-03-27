@@ -629,7 +629,7 @@ public static void main(String[] args) {
     ```java
     DisciplinaBean disciplina = objectMapper.readValue(disciplinas.getJSONObject(i).toString(), DisciplinaBean.class);
     ```
-## Exercício
+# Exercício
 - Implementar um serviço CRUD para disciplina com os seguintes requisitos (utilizar *Data Rest*):
     - Disciplina possui um id numérico sequencial, um nome e carga horária;
     - Criar um endpoint com método POST para criar uma nova disciplina (POST `http://localhost:8080/api/disciplina`);
@@ -730,7 +730,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
 - A porta do actuator pode ser alterada por meio da propriedade `management.server.port` (por exemplo, `8081`)
 - Acessar a URL `http://localhost:8081/actuator` ou `http://localhost:8081/actuator/health`
 
-# Health Check Personalizado
+### Health Check Personalizado
 - Um health check personalizado permite especificar quando um determinado serviço está acessível
     ```java
     @Component
@@ -743,7 +743,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     
     }
     ```
-# Métricas
+### Métricas
 - Para habilitar mais *endpoints* alterar `management.endpoints.web.exposure.include=*`
 - Exemplo de uma métrica persinalizada:
     ```java
@@ -754,7 +754,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
         }
     }
     ```
-# Informações
+### Informações
 - Algumas configurações podem ser habilitadas:
     ```java
     management.info.java.enabled=true
@@ -764,9 +764,9 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     info.app.encoding=@project.build.sourceEncoding@
     info.app.java.version=@java.version@
     ```
-# Outros End Points
+### Outros End Points
 - Por meio do actuator é também possível terminar um serviço (propriedade `management.endpoint.shutdown.enabled=true`)
-# Spring Admin Server
+### Spring Admin Server
 - É uma interface web para administração das aplicações *Spring Boot*
 - Criar um novo projeto *Sprint Boot* e adicionar as dependências:
     ```xml
