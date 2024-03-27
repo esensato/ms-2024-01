@@ -606,7 +606,7 @@ public static void main(String[] args) {
       .retrieve()
       .toBodilessEntity();
     ```
-# Trabalhando com JSON
+## Trabalhando com JSON
 - Incluir nas dependências do projeto `pom.xml`
     ```xml
     <dependency>
@@ -620,7 +620,7 @@ public static void main(String[] args) {
     - `JSONArray`: representa um array JSON
     - `length()`: retorna o total de objetos contidos no `JSONArray`
     - `getJSONObject()`, `getJSONArray()`, `getString()`, etc...: retornam o valor de um atributo de um objeto JSON
-# Mapeando Atributos JSON para Objetos
+### Mapeando Atributos JSON para Objetos
 - Utilizar o `ObjectMapper`:
     ```java
     ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -816,7 +816,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     </dependency>
     ```
 - Apontar para o *Admin Server* com as propriedades `spring.boot.admin.client.url=http://localhost:8082` e `management.endpoint.health.show-details=always`
-# Segurança Básica
+## Segurança Básica
 - Para garantir um nível de segurança mínimo para os *endpoints* é possível ativar um *starter*
     ```xml
     <dependency>
@@ -836,7 +836,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     spring.security.user.name = teste
     spring.security.user.password = 123
     ```
-# RestClient
+### RestClient
 - Definir no Header da requisição:
     ```java
     String plainCreds = "teste:123";
