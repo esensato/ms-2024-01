@@ -5,6 +5,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.servers.Server;
 import jakarta.validation.Valid;
 
 import java.util.HashMap;
@@ -27,6 +36,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/aluno")
+@OpenAPIDefinition(servers = { @Server(url = "http://localhost:8080"),
+        @Server(url = "http://ambiente-teste.com") }, info = @Info(title = "Sistema Acadêmico", description = "Sistema para controle de matriculas de alunos", version = "1.0"))
 public class Aluno {
 
     @Autowired
@@ -52,6 +63,7 @@ public class Aluno {
     }
 
     // /aluno
+    @Operation(summary = "Lista alunos", description = "Obtem a lista de todos os alunos", tags = { "aluno" })
     @GetMapping("/todos")
     public ResponseEntity<Iterable<AlunoBean>> todosAlunos() throws AlunoInexistenteException {
 
@@ -87,6 +99,15 @@ public class Aluno {
     }
 
     // localhost:8080/aluno/100
+    @Operation(summary = "Obter dados aluno", description = "Obtem os dados de um aluno pelo código", tags = {
+            "aluno" }, parameters = { @Parameter(name = "idAluno", required = false, description = "Id do Aluno") })
+
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Encontrou o aluno", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = AlunoBean.class)) }),
+            @ApiResponse(responseCode = "400", description = "Id do aluno inválido", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Aluno não localizado", content = @Content) })
+
     @GetMapping("/{id}")
     public ResponseEntity<AlunoBean> getAlunoByPath(@PathVariable Integer id) throws AlunoInexistenteException {
         logger.debug("Obtendo o aluno: " + id);

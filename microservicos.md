@@ -729,7 +729,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     ```
 - A porta do actuator pode ser alterada por meio da propriedade `management.server.port` (por exemplo, `8081`)
 - Acessar a URL `http://localhost:8081/actuator` ou `http://localhost:8081/actuator/health`
-
+- Para incluir maiores informações sobre as informações da disponibilidade dos serviços (*health*) basta ativar a configuração `management.endpoint.health.show-details=always`
 ### Health Check Personalizado
 - Um health check personalizado permite especificar quando um determinado serviço está acessível
     ```java
@@ -743,6 +743,56 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     
     }
     ```
+- Por exemplo, pode-se verificar se o banco de dados está disponível
+```java
+@Component("dbFaculdade")
+public class DatabaseHealthContributor
+        implements HealthIndicator {
+
+    @Autowired
+    private DataSource ds;
+
+    @Override
+    public Health health() {
+        try (Connection conn = ds.getConnection()) {
+            Statement stmt = conn.createStatement();
+            stmt.execute("select COUNT(*) from TAB_ALUNO");
+        } catch (SQLException ex) {
+            return Health.outOfService().withException(ex).build();
+        }
+        return Health.up().build();
+    }
+}
+```
+
+### Configurando o Prometheus
+- Incluir a dependência
+    ```xml
+    <dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    ```
+- Habilitar o *endpoint* do *Prometheus* com a propriedade `management.endpoints.web.exposure.include=health,info,prometheus`
+- Acessar o *endpoint* `http://localhost:8081/actuator/prometheus`
+- Criar um arquivo *yaml* para configurar o *Prometheus* com o nome `prometheus-config.yml`
+    ```yaml
+    global:
+      scrape_interval:     15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'faculdade'
+        metrics_path: '/actuator/prometheus'
+        scrape_interval: 5s
+        static_configs:
+        - targets: ["substituir_hostname:8081"]
+    ```
+- Obter a imagem e iniciar um container do *Prometheus*
+    ```shell
+    docker login docker.io
+    docker run -p 9095:9090 -v ./prometheus-config.yml:/etc/prometheus/prometheus.yml --name prometheus prom/prometheus
+    ```
+- Acessar na URL `http://localhost:9090/targets`
 ### Métricas
 - Para habilitar mais *endpoints* alterar `management.endpoints.web.exposure.include=*`
 - Exemplo de uma métrica persinalizada:
@@ -849,7 +899,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
                     .retrieve()
                     .toEntity(AlunoBean.class);
     ```
-# Cross Site Request Forgery (CSRF)
+### Cross Site Request Forgery (CSRF)
 - É uma proteção de segurança que impede que serviços hospedados em servidores distintos sejam acessados mutuamente
 - Para desabilitar o *CSRF*:
     ```javascript
@@ -863,4 +913,320 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
         }
     }
     ```
+## Websocket e STOMP
+- *Websocket* é um protocolo **bidirecional** (*full-duplex*) para processamento de mensagens em tempo real
+- O protocolo *HTTP* é utilizado inicialmente para o estabelecimento da conexão
+- Posteriormente toda comunicação é feita por meio de *TCP/IP*
+- *STOMP* (Simple Text Oriented Messaging Protocol) é um protocolo para troca de mensagens que pode ser executado sobre *Websocket*
+### Spring Boot Websocket
+- Adicionar a dependência
+    ```xml
+    <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-websocket</artifactId>
+    </dependency>
+    ```
+- Habilitar o log de *trace* (opcional): `logging.level.org.springframework.web.socket=TRACE`
+- Criar a configuração
+    ```java
+    @Configuration
+    @EnableWebSocketMessageBroker
+    public class ChatConfig implements WebSocketMessageBrokerConfigurer {
 
+        @Override
+        public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
+    
+            // define qual será o endpoint para a troca de mensagens
+            registry.addEndpoint("/mensagem").withSockJS();
+    
+        }
+
+        @Override
+        public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
+    
+            // prefixo do endpoint onde as mensagens serão recebidas pelos clientes
+            registry.enableSimpleBroker("/topic/", "/queue/");
+    
+            // prefixo do endpoint para onde as mensagens serão enviadas
+            registry.setApplicationDestinationPrefixes("/app");
+    
+        } // Continua no próximo slide...
+    
+    }
+    ```
+- A conexão principal deverá ser feita em `http://localhost:8080/mensagem`
+- Criar uma classe para encapsular as mensagens
+    ```java
+    public class Mensagem {
+    
+        private String mensagem;
+    
+        public String getMensagem() {
+            return mensagem;
+        }
+    
+        public void setMensagem(String mensagem) {
+            this.mensagem = mensagem;
+        }
+    }
+    ```
+- Implementar o *Controller* que irá receber as mensagens e encaminhar para a fila ou tópico
+    ```java
+    @Controller
+    public class Chat {
+    
+        @MessageMapping("/chat")
+        @SendTo("/topic/mensagens") // direciona para os inscritos no tópico
+        public Mensagem getMensagens(Mensagem dto) {
+            return dto;
+        }
+    
+    }
+    ```
+- Mensagens enviadas do cliente por meio do caminho `/app/chat` serão encaminhadas no *Controller* para o *broker* no caminho `/topic/mensagens`
+- Clientes inscritos no `/topic/mensagens` recebem as mensagens encaimnadas
+- Os clientes deverão se inscrever 
+- Criar uma pasta *public* dentro de *java* para publicação de conteúdo estático
+- Na pasta *public*, incluir o seguinte cliente *HTML*
+    ```html
+    <html>
+    
+    <head>
+        <!-- Bibliotecas sockjs e stomp javascript -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+        <script>
+    
+            // estabelece a conexão com o endpoint principal
+            let sock = new SockJS("http://localhost:8080/mensagem");
+    
+            // cria o cliente Websocket utilizando o protocolo STOMP
+            let client = Stomp.over(sock);
+    
+            // efetua a conexão e registra a função de callback
+            client.connect({}, frame => {
+    
+                // se inscreve no tópico "/topic/mensagens" para receber as mensagens
+                client.subscribe("/topic/mensagens", payload => {
+    
+                    let message_list = document.getElementById('message-list');
+                    let message = document.createElement('li');
+    
+                    message.appendChild(document.createTextNode(JSON.parse(payload.body).mensagem));
+                    message_list.appendChild(message);
+    
+                });
+    
+            });
+    
+            // envia a mensagem
+            function sendMessage() {
+    
+                let input = document.getElementById("mensagem");
+                let message = input.value;
+    
+                client.send("/app/chat", {}, JSON.stringify({ mensagem: message }));
+    
+            }
+    
+        </script>
+    </head>
+    
+    <body>
+        <h1>Chat</h1>
+    
+        <label for="mensagem">Mensagem:</label>
+        <input type="text" id="mensagem">
+    
+        <button onclick="sendMessage()">Enviar</button>
+    
+        <ul id="message-list"></ul>
+    
+    </body>
+    
+    </html>
+    ```
+## Programação Reativa
+
+- Mono: Cria um stream de dados para somente 1 único elemento
+- Consumidor:
+    ```java
+    public class ConsumidorMensagemMono {
+        public void exibirMensagem(String msg) {
+            System.out.println("--->  " + msg);
+        }
+    }
+    ```
+- Produtor:
+    ```java
+    public class ProdutorMensagemMono {
+    
+        public static void main(String[] args) throws InterruptedException {
+            ConsumidorMensagemMono cm = new ConsumidorMensagemMono();
+            Mono<String> m = Mono.just("Alo").delayElement(Duration.ofSeconds(5)).log();
+            m.subscribe(cm::exibirMensagem);
+    
+            Thread.sleep(10000);
+    
+            System.out.println("FIM");
+    
+        }
+    
+    }
+    ```
+- Flux: Stream para mais de um elemento
+    ```java
+    public class ProdutorMensagemFlux {
+    
+        public static void main(String[] args) {
+    
+            List<Integer> numeros = new ArrayList<Integer>();
+            Flux.just(1, 2, 3, 4).log().subscribe(numeros::add);
+    
+            System.out.println(numeros);
+    
+        }
+    }
+    ```
+- Implementando um custom subscriber
+    ```java
+    public class ProdutorMensagemFlux {
+    
+        public static void main(String[] args) {
+    
+            List<Integer> numeros = new ArrayList<Integer>();
+            Flux.just(1, 2, 3, 4).log().subscribe(new Subscriber<Integer>() {
+    
+                @Override
+                public void onComplete() {
+                    System.out.println("FIM");
+                }
+    
+                @Override
+                public void onError(Throwable arg0) {
+                }
+    
+                @Override
+                public void onNext(Integer nro) {
+                    numeros.add(nro);
+                }
+    
+                @Override
+                public void onSubscribe(Subscription s) {
+                    s.request(Long.MAX_VALUE);
+                }
+    
+            });
+    
+            System.out.println(numeros);
+    
+        }
+    }
+    ```
+### Exemplo Bolsa Valores
+- Classe para representar valores de ações no decorrer do tempo:
+    ```java
+    public class Cotacao {
+    
+        public static final String[] IDS = { "VALE3", "ITUB4", "PETR4", "BBDC4", "PETR4" };
+    
+        public Cotacao(String idEmpresa, float valor) {
+            super();
+            this.idEmpresa = idEmpresa;
+            this.valor = valor;
+        }
+    
+        private String idEmpresa;
+    
+        public String getIdEmpresa() {
+            return idEmpresa;
+        }
+    
+        public void setIdEmpresa(String idEmpresa) {
+            this.idEmpresa = idEmpresa;
+        }
+    
+        private float valor;
+    
+        public float getValor() {
+            return valor;
+        }
+    
+        public void setValor(float valor) {
+            this.valor = valor;
+        }
+    
+    }
+    ```
+- O produtor neste caso irá enviar em tempo real as cotações atuais das ações da bolsa
+    ```java
+    public class BolsaFlux {
+    
+        private List<Cotacao> cotacoes = new ArrayList<Cotacao>();
+        public Flux<Cotacao> fluxo;
+    
+        public void iniciar(int repeticoes) throws InterruptedException {
+            Random r = new Random();
+    
+            for (int i = 0; i < repeticoes; i++) {
+                final int valor = (-50 + r.nextInt(100));
+                final int id = r.nextInt(Cotacao.IDS.length);
+                // as cotações são direcionadas para o fluxo
+                cotacoes.add(new Cotacao(Cotacao.IDS[id], 100 - valor));
+    
+            }
+    
+            fluxo = Flux.fromIterable(cotacoes).delayElements(Duration.ofSeconds(2));
+    
+        }
+    
+        public static void main(String[] args) throws InterruptedException {
+            BolsaFlux b = new BolsaFlux();
+            b.iniciar(100);
+        }
+    }
+    ```
+- O consumidor será o *Home Broker* que receberá as cotações
+    ```java
+    public class HomeBrokerFlux {
+    
+        public HomeBrokerFlux(Flux<Cotacao> fluxo) throws InterruptedException {
+            // inscreve o método comprar para processar a ação quando recevida
+            fluxo.subscribe(this::comprar);
+            System.out.println(">> INICIADO <<");
+            long gastatempo = 0;
+            // somente para indicar que alguma atividade está sendo realizada...
+            while (true) {
+                gastatempo++;
+                if (gastatempo > 100000000L) {
+                    System.out.print("-");
+                    gastatempo = 0;
+                }
+            }
+        }
+    
+        // processa a açào quando recebida
+        public void comprar(Cotacao cotacao) {
+            System.out.println(">>> Processando: " + cotacao.getIdEmpresa() + " por " + cotacao.getValor());
+        }
+    }
+    ```
+- Classe principal:
+    ```java
+    public class BolsaMain {
+    
+        public static void main(String[] args) throws InterruptedException {
+    
+            BolsaFlux bolsa = new BolsaFlux();
+            bolsa.iniciar(1);
+            new HomeBrokerFlux(bolsa.fluxo);
+    
+            while (true)
+                ;
+        }
+    }
+    ```
+
+
+    

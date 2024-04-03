@@ -2,13 +2,21 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TesteJSON",
+            "request": "launch",
+            "mainClass": "aula.microservicos.faculdade.TesteJSON",
+            "projectName": "faculdade"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-FaculdadeApplication<faculdade>",
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "mainClass": "aula.microservicos.faculdade.FaculdadeApplication",
             "projectName": "faculdade",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=49300 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=faculdade"
         }
     ]
 }
