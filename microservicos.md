@@ -744,27 +744,26 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     }
     ```
 - Por exemplo, pode-se verificar se o banco de dados está disponível
-```java
-@Component("dbFaculdade")
-public class DatabaseHealthContributor
-        implements HealthIndicator {
-
-    @Autowired
-    private DataSource ds;
-
-    @Override
-    public Health health() {
-        try (Connection conn = ds.getConnection()) {
-            Statement stmt = conn.createStatement();
-            stmt.execute("select COUNT(*) from TAB_ALUNO");
-        } catch (SQLException ex) {
-            return Health.outOfService().withException(ex).build();
+    ```java
+    @Component("dbFaculdade")
+    public class DatabaseHealthContributor
+            implements HealthIndicator {
+    
+        @Autowired
+        private DataSource ds;
+    
+        @Override
+        public Health health() {
+            try (Connection conn = ds.getConnection()) {
+                Statement stmt = conn.createStatement();
+                stmt.execute("select COUNT(*) from TAB_ALUNO");
+            } catch (SQLException ex) {
+                return Health.outOfService().withException(ex).build();
+            }
+            return Health.up().build();
         }
-        return Health.up().build();
     }
-}
-```
-
+    ```
 ### Configurando o Prometheus
 - Incluir a dependência
     ```xml
