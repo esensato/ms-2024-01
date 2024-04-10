@@ -912,6 +912,51 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
         }
     }
     ```
+## Personalizando a Segurança
+- Criar uma classe para sobrescrever a seguraça padrão:
+
+    ```java
+    @Configuration
+    @EnableWebSecurity
+    public class CustomSecurity {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    
+            http.authorizeHttpRequests(authz -> authz
+                    .requestMatchers("/seguranca/publico/**").permitAll()
+                    .requestMatchers("/seguranca/admin/**").hasRole("ADMIN")
+                    .anyRequest().authenticated())
+                    .httpBasic(Customizer.withDefaults());
+            return http.build();
+
+        }
+    
+        @Bean
+        public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
+    
+            UserDetails user = User.withUsername("user")
+                    .password(passwordEncoder.encode("password"))
+                    .roles("USER")
+                    .build();
+    
+            UserDetails admin = User.withUsername("admin")
+                    .password(passwordEncoder.encode("admin"))
+                    .roles("USER", "ADMIN")
+                    .build();
+    
+            return new InMemoryUserDetailsManager(user, admin);
+        }
+    
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+            PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
+            return encoder;
+        }
+    
+    }
+    ```
+    
+
 ## Websocket e STOMP
 - *Websocket* é um protocolo **bidirecional** (*full-duplex*) para processamento de mensagens em tempo real
 - O protocolo *HTTP* é utilizado inicialmente para o estabelecimento da conexão
@@ -1162,7 +1207,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     ```java
     public class BolsaFlux {
     
-        private List<Cotacao> cotacoes = new ArrayList<Cotacao>();
+        private static List<Cotacao> cotacoes = new ArrayList<Cotacao>();
         public Flux<Cotacao> fluxo;
     
         public void iniciar(int repeticoes) throws InterruptedException {
@@ -1221,11 +1266,37 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
             bolsa.iniciar(1);
             new HomeBrokerFlux(bolsa.fluxo);
     
-            while (true)
-                ;
+            while (true);
         }
     }
     ```
-
-
-    
+### Implementação com Serviço
+- Adicionar a seguinte dependência:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
+    <version>3.2.4</version>
+</dependency>
+```
+- Obs: a dependência `spring-boot-starter-web` não deve estar presente!
+- Criar um simples endpoint de testes:
+    ```java
+    @Bean
+    public RouterFunction<ServerResponse> mensagem() {
+        return route(GET("/mensagem"),
+                request -> ServerResponse.ok()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(Mono.just("Endpoint Reactive"), String.class));
+    }
+    ```
+- Para transferência das cotações das ações criar o seguinte endpoint:
+    ```java
+    @Bean
+    public RouterFunction<ServerResponse> cotacao() {
+        return route(GET("/cotacao"),
+                request -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Flux.fromIterable(cotacoes).delayElements(Duration.ofSeconds(2)), Cotacao.class));
+    }
+    ```

@@ -2,6 +2,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "AdminserverApplication",
+            "request": "launch",
+            "mainClass": "aula.microservicos.adminserver.AdminserverApplication",
+            "projectName": ""
+        },
+        {
+            "type": "java",
             "name": "TesteJSON",
             "request": "launch",
             "mainClass": "aula.microservicos.faculdade.TesteJSON",
