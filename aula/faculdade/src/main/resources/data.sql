@@ -23,6 +23,18 @@ CREATE TABLE tab_matricula (
     status_matricula VARCHAR(1) NOT NULL
 );
 
+CREATE TABLE USERS (
+    USERNAME VARCHAR2(128) PRIMARY KEY,
+    PASSWORD VARCHAR2(128) NOT NULL,
+    ENABLED  VARCHAR2(10) NOT NULL
+);
+
+
+CREATE TABLE AUTHORITIES (
+    USERNAME VARCHAR2(128) NOT NULL,
+    AUTHORITY VARCHAR2(128) NOT NULL
+);
+
 insert into tab_aluno(nome, turma, curso) values ('Pedro da Silva', '3AB', 'SI');
 insert into tab_aluno(nome, turma, curso) values ('Mariana Oliveira', '4AB', 'SI');
 

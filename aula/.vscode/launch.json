@@ -24,6 +24,26 @@
             "args": "",
             "envFile": "${workspaceFolder}/.env",
             "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=49300 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=faculdade"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-AdminserverApplication<adminserver>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "aula.microservicos.adminserver.AdminserverApplication",
+            "projectName": "adminserver",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-FaculdadeClienteApplication<faculdade-cliente>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "aula.microservicos.faculdadecliente.FaculdadeClienteApplication",
+            "projectName": "faculdade-cliente",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

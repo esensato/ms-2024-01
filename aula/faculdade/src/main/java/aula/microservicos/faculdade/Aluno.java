@@ -98,6 +98,11 @@ public class Aluno {
 
     }
 
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return new ResponseEntity<String>("Pong", HttpStatus.OK);
+    }
+
     // localhost:8080/aluno/100
     @Operation(summary = "Obter dados aluno", description = "Obtem os dados de um aluno pelo código", tags = {
             "aluno" }, parameters = { @Parameter(name = "idAluno", required = false, description = "Id do Aluno") })

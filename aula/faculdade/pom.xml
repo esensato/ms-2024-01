@@ -101,6 +101,12 @@
 			<artifactId>spring-boot-admin-starter-client</artifactId>
 			<version>3.1.5</version>
 		</dependency>
+
+		<!-- Implementação de segurança para os endpoints -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
 	
 	</dependencies>
 
