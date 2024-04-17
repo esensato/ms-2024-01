@@ -961,7 +961,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
 - Executar um container com o *Keycloack*
     ```s
     docker run -p 9090:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:24.0.2 start-dev
-    ``
+    ```
 - Acessar o console do *Keycloack* e efetuar login como `admin`/`admin`
 - Seguir o [Guia de Configuração do Keyglock](https://www.keycloak.org/getting-started/getting-started-docker)
 - Desabilitar User verify profile (Authentication (menu lateral esquerdo) -> Required actios tab)
