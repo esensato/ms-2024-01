@@ -955,7 +955,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     
     }
     ```
-## Autentiction com OAuth2
+## Autenticação e Autorização com OAuth2
 - Instalar o *Keycloack* como provedor de autenticação
 - Utilizar o ambiente on-line para o docker [Play With Docker](https://labs.play-with-docker.com/)
 - Executar um container com o *Keycloack*
