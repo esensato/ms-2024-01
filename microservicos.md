@@ -955,8 +955,154 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     
     }
     ```
+## Autentiction com OAuth2
+- Instalar o *Keycloack* como provedor de autenticação
+- Utilizar o ambiente on-line para o docker [Play With Docker](https://labs.play-with-docker.com/)
+- Executar um container com o *Keycloack*
+    ```s
+    docker run -p 9090:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:24.0.2 start-dev
+    ``
+- Acessar o console do *Keycloack* e efetuar login como `admin`/`admin`
+- Seguir o [Guia de Configuração do Keyglock](https://www.keycloak.org/getting-started/getting-started-docker)
+- Desabilitar User verify profile (Authentication (menu lateral esquerdo) -> Required actios tab)
+- Para obter o token, realizar um *POST* na URL `http://localhost:9090/realms/FaculdadeHealm/protocol/openid-connect/token`
+    - No header da requisição deve constar `Content-Type`:`application/x-www-form-urlencoded`
+    - Definir os parâmetros abaixo no corpo da requisição:
+        - client_id:<your_client_id>
+        - username:<your_username>
+        - password:<your_password>
+        - grant_type:password
+- O token obtido pode ser decodificado em (Jwt)[https://jwt.io/]
+- Para as requisições aos endpoints o token dever-a ser passado no header como 'Authorization': 'Bearer' + access_token
+### Configuração no Spring
+- Incluir a dependência abaixo:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+</dependency>
+```
+- Requisitar o token
+    ```java
+    @RestController
+    @RequestMapping("/login")
+    public class Login {
     
-
+        @GetMapping
+        public ResponseEntity<String> login() {
+    
+            RestTemplate restTemplate = new RestTemplate();
+    
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+            requestBody.add("username", "admin");
+            requestBody.add("password", "admin");
+            requestBody.add("client_id", "faculdade");
+            requestBody.add("grant_type", "password");
+    
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    "http://localhost:9090/realms/FaculdadeHealm/protocol/openid-connect/token",
+                    new HttpEntity<>(requestBody, headers), String.class);
+    
+            JSONObject json = new JSONObject(response.getBody());
+            System.out.println(json);
+            return response;
+        }
+    
+    }
+    ```
+- Incluir essas propriedades
+    ```properties
+    # Security Configuration
+    spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9090/realms/FaculdadeHealm
+    spring.security.oauth2.resourceserver.jwt.jwk-set-uri=${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+    
+    # JWT Configuration
+    jwt.auth.converter.resource-id=faculdade
+    jwt.auth.converter.principal-attribute=admin
+    
+    # Logging Configuration
+    logging.level.org.springframework.security=TRACE
+    ```
+- Criar um conversor para o Token para obter as ROLES:
+    ```java
+    import java.util.Collection;
+    import java.util.Map;
+    import java.util.stream.Collectors;
+    import java.util.stream.Stream;
+    
+    import org.springframework.core.convert.converter.Converter;
+    import org.springframework.security.authentication.AbstractAuthenticationToken;
+    import org.springframework.security.core.GrantedAuthority;
+    import org.springframework.security.core.authority.SimpleGrantedAuthority;
+    import org.springframework.security.oauth2.jwt.Jwt;
+    import org.springframework.security.oauth2.jwt.JwtClaimNames;
+    import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+    import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+    import org.springframework.stereotype.Component;
+    
+    @Component
+    public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {
+    
+        private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+    
+        public JwtConverter() {
+            super();
+        }
+    
+        @Override
+        public AbstractAuthenticationToken convert(Jwt jwt) {
+            Collection<GrantedAuthority> authorities = Stream.concat(
+                    jwtGrantedAuthoritiesConverter.convert(jwt).stream(),
+                    extractResourceRoles(jwt).stream()).collect(Collectors.toSet());
+            return new JwtAuthenticationToken(jwt, authorities, getPrincipalClaimName(jwt));
+        }
+    
+        private String getPrincipalClaimName(Jwt jwt) {
+            String claimName = JwtClaimNames.SUB;
+    
+            claimName = "preferred_username";
+    
+            return jwt.getClaim(claimName);
+        }
+    
+        private Collection<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
+            Map<String, Object> resourceAccess = jwt.getClaim("realm_access");
+    
+            Collection<String> resourceRoles;
+    
+            resourceRoles = (Collection<String>) resourceAccess.get("roles");
+    
+            return resourceRoles.stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                    .collect(Collectors.toSet());
+        }
+    }
+    ```
+- Atualizar o `FaculdadeSecurity`
+    ```java
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    
+            http.authorizeHttpRequests(authz -> authz
+                            // permite o acesso publico ao endpoint /aluno/ping
+                            .requestMatchers("/aluno/ping").permitAll()
+                            .requestMatchers("/api/**").permitAll()
+                            .requestMatchers("/login/**").permitAll()
+                            .requestMatchers("/aluno/nome/**").hasRole("ADMIN")
+                            .requestMatchers("/aluno/curso/**").authenticated()
+                            .anyRequest().authenticated());
+    
+            http.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+    
+            return http.build();
+    
+    }
+    ```
 ## Websocket e STOMP
 - *Websocket* é um protocolo **bidirecional** (*full-duplex*) para processamento de mensagens em tempo real
 - O protocolo *HTTP* é utilizado inicialmente para o estabelecimento da conexão
