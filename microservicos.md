@@ -1140,11 +1140,12 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
             // prefixo do endpoint para onde as mensagens serão enviadas
             registry.setApplicationDestinationPrefixes("/app");
     
-        } // Continua no próximo slide...
+        }
     
     }
     ```
 - A conexão principal deverá ser feita em `http://localhost:8080/mensagem`
+- Ao realizar um simples **GET** neste *endpoint* a seguinte resposta é esperada *Welcome to SockJS!*
 - Criar uma classe para encapsular as mensagens
     ```java
     public class Mensagem {
@@ -1167,14 +1168,14 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     
         @MessageMapping("/chat")
         @SendTo("/topic/mensagens") // direciona para os inscritos no tópico
-        public Mensagem getMensagens(Mensagem dto) {
-            return dto;
+        public Mensagem getMensagens(Mensagem mensagem) {
+            return mensagem;
         }
     
     }
     ```
 - Mensagens enviadas do cliente por meio do caminho `/app/chat` serão encaminhadas no *Controller* para o *broker* no caminho `/topic/mensagens`
-- Clientes inscritos no `/topic/mensagens` recebem as mensagens encaimnadas
+- Clientes inscritos no `/topic/mensagens` recebem as mensagens encaminhadas
 - Os clientes deverão se inscrever 
 - Criar uma pasta *public* dentro de *java* para publicação de conteúdo estático
 - Na pasta *public*, incluir o seguinte cliente *HTML*
@@ -1445,4 +1446,135 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Flux.fromIterable(cotacoes).delayElements(Duration.ofSeconds(2)), Cotacao.class));
     }
+    ```
+## Kafka
+
+- Efetuar o download e instalação do [Apache Kafka](https://kafka.apache.org/downloads)
+- Principalmente para usuários *Windows* descompactar o arquivo na raiz do **C:\** e renomear a pasta para *kafka*
+- Para usuários Windows deve ser utilizado o *Windows Power Shell*
+- Editar arquivo KAFKA_HOME/config/server.properties
+- Alterar propriedade log.dirs=/tmp/kafka-logs
+- Editar arquivo KAFKA_HOME/config/zookeper.properties
+- Alterar propriedade dataDir=/tmp/zookeeper
+- Iniciar o *Zookeper*: `.\zookeeper-server-start.bat ..\..\config\zookeeper.properties`
+- Iniciar o *Kafka*: `.\kafka-server-start.bat ..\..\config\server.properties`
+- Cria um novo tópico
+
+`.\kafka-topics.bat --create --topic MeuTopico --bootstrap-server localhost:9092`
+
+- Listar tópicos criados
+
+`.\kafka-topics.bat --list --bootstrap-server localhost:9092`
+
+- Inserir itens no tópico
+
+`.\kafka-console-producer.bat --topic MeuTopico --bootstrap-server localhost:9092`
+
+- Consumir itens do tópico
+
+`.\kafka-console-consumer.bat --topic MeuTopico --from-beginning --bootstrap-server localhost:9092`
+
+
+## Kafka s SpringBoot
+
+- Adicionar as dependências:
+    ```xml
+    <dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka-streams</artifactId>
+    </dependency>
+    
+    <dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>20240303</version>
+    </dependency>
+    ```
+- Propriedades do producer
+    ```properties
+    spring.kafka.producer.bootstrap-servers=127.0.0.1:9092
+    spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+    spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+    spring.kafka.producer.group-id=group_id
+    topic.name.producer=topico.comando.teste
+    auto.create.topics.enable=true
+    ```
+- Propriedades do consumer
+    ```properties
+    spring.kafka.consumer.bootstrap-servers=127.0.0.1:9092
+    spring.kafka.consumer.group-id=group_id
+    spring.kafka.consumer.auto-offset-reset=earliest
+    spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    topic.name.consumer=topico.comando.teste
+    ```
+- Implementando o producer
+    ```java
+    @Service
+    public class BolsaKafkaProducer {
+    
+        @Value("${topic.name.producer}")
+        private String topicName;
+        
+        private static final Logger log = LoggerFactory.getLogger(BolsaKafkaProducer.class);
+    
+        @Autowired
+        private KafkaTemplate<String, String> kafkaTemplate;
+    
+        public void send(String message){
+            kafkaTemplate.send(topicName, message);
+        	log.debug("Enviado mensagem...");
+        }
+        
+    }
+    ```
+- Implementando o consumer
+    ```java
+    @Service
+    public class BolsaKafkaConsumer {
+    
+        @Value("${topic.name.consumer}")
+        private String topicName;
+    
+        private static final Logger log = LoggerFactory.getLogger(BolsaKafkaConsumer.class);
+    
+        @KafkaListener(topics = "${topic.name.consumer}", groupId = "group_id")
+        public void consume(ConsumerRecord<String, String> payload){
+        	log.info("Tópico: {}", topicName);
+            log.info("key: {}", payload.key());
+            log.info("Headers: {}", payload.headers());
+            log.info("Partion: {}", payload.partition());
+            log.info("Valor: {}", payload.value());
+        }
+    }
+    ```
+- Endpoint do producer
+    ```java
+    @RestController
+    public class BolsaKafkaController {
+    
+        @Autowired
+        private BolsaKafkaProducer producer;
+        
+        @GetMapping("/producer")
+        public ResponseEntity<String> producer() {
+            producer.send("OK!");
+            return new ResponseEntity<String>(HttpStatus.OK);
+        }
+    }
+    ```
+- Serialização de Objetos
+    ```properties
+    spring.kafka.consumer.value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    spring.kafka.producer.value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    spring.kafka.consumer.properties.spring.json.trusted.packages=*
+    ```
+- Exemplo de código
+    ```java
+    private KafkaTemplate<String, Object> kafkaTemplate;
     ```

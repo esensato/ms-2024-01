@@ -5,13 +5,20 @@ import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -23,6 +30,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RestController
 @RequestMapping("/faculdade")
 public class Faculdade {
+
+        @GetMapping("/token/{username}/{senha}")
+        public ResponseEntity<String> getToken2(@PathVariable String username, @PathVariable String senha) {
+
+                // repassar a requisição para o provedor de chave
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+                MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+                requestBody.add("username", username);
+                requestBody.add("password", senha);
+                requestBody.add("client_id", "faculdade-client");
+                requestBody.add("grant_type", "password");
+
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                                "http://localhost:9090/realms/DevHeml/protocol/openid-connect/token",
+                                new HttpEntity<>(requestBody, headers), String.class);
+
+                JSONObject json = new JSONObject(response.getBody());
+                System.out.println(json);
+
+                return response;
+        }
 
         // http://localhost:8080/faculdade/1
         // Alterar o endpoint DELETE de disciplina para somente permitir excluir uma
