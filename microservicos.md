@@ -1450,12 +1450,12 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
 ## Kafka
 
 - Efetuar o download e instalação do [Apache Kafka](https://kafka.apache.org/downloads)
-- Principalmente para usuários *Windows* descompactar o arquivo na raiz do **C:\** e renomear a pasta para *kafka*
+- Principalmente para usuários *Windows* descompactar o arquivo na raiz do **C:\\** e renomear a pasta para *kafka*
 - Para usuários Windows deve ser utilizado o *Windows Power Shell*
-- Editar arquivo KAFKA_HOME/config/server.properties
-- Alterar propriedade log.dirs=/tmp/kafka-logs
-- Editar arquivo KAFKA_HOME/config/zookeper.properties
-- Alterar propriedade dataDir=/tmp/zookeeper
+- Editar arquivo `KAFKA_HOME/config/server.properties`
+- Alterar propriedade `log.dirs=/tmp/kafka-logs`
+- Editar arquivo `KAFKA_HOME/config/zookeper.properties`
+- Alterar propriedade `dataDir=/tmp/zookeeper`
 - Iniciar o *Zookeper*: `.\zookeeper-server-start.bat ..\..\config\zookeeper.properties`
 - Iniciar o *Kafka*: `.\kafka-server-start.bat ..\..\config\server.properties`
 - Cria um novo tópico
@@ -1475,7 +1475,7 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
 `.\kafka-console-consumer.bat --topic MeuTopico --from-beginning --bootstrap-server localhost:9092`
 
 
-## Kafka s SpringBoot
+## Kafka e SpringBoot
 
 - Adicionar as dependências:
     ```xml
