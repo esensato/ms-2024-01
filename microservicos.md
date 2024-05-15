@@ -1578,3 +1578,82 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     ```java
     private KafkaTemplate<String, Object> kafkaTemplate;
     ```
+## Versionamento de API
+- Via URL
+    ```
+    GET /v1/aluno/10520
+    GET /v2/aluno/10520
+    ```
+- Header versioning
+    ```java
+    @GetMapping(value="/aluno", headers = "X-API-VERSION=1")
+    public ResponseEntity<AlunoBeanV1> getAlunoV1Header() { 
+    return new ResponseEntity<AlunoBeanV1>(new AlunoBeanV1(1, "Joao", "1000"), HttpStatus.OK); 
+    }
+    @GetMapping(value="/aluno", headers = "X-API-VERSION=2")
+    public ResponseEntity<AlunoBeanV2> getAlunoV2Header() { 
+    return new ResponseEntity<AlunoBeanV2>(new AlunoBeanV2(1, "Joao", "1000", 100), HttpStatus.OK); 
+    }
+    ```
+    - Inserir um parâmetro no `header` da (`X-API-VERSION=1`) requisição com o valor da versão desejada
+- Media-Type
+    ```java
+    @GetMapping(value="/aluno", produces="application/sistema.academico-v1+json")
+    public ResponseEntity<AlunoBeanV1> getAlunoV1Produces() { 
+    return new ResponseEntity<AlunoBeanV1>(new AlunoBeanV1(1, "Joao", "1000"), HttpStatus.OK); 
+    }
+    @GetMapping(value="/aluno", produces="application/sistema.academico-v2+json")
+    public ResponseEntity<AlunoBeanV2> getAlunoV2Produces() { 
+    return new ResponseEntity<AlunoBeanV2>(new AlunoBeanV2(1, "Joao", "1000", 100), HttpStatus.OK); 
+    }
+    ```
+    - Inserir um parâmetro no `header` da (`Accept`) requisição com o valor da versão desejada (`application/sistema.academico-v1+json` ou `application/sistema.academico-v2+json`)
+
+## Gestão de Configuração
+- Um problema comum com diversos serviços fisicamente serparados é a gestão de configuração
+- É necessário um ponto central para configurar os serviços
+- Uma possibiblidade é o uso do **Spring Config Server**
+- Instalar a dependência:
+    ```xml
+    <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-config-server</artifactId>
+    <version>3.1.1</version>
+    </dependency>
+    ```
+- Habilitar o *Config Server*
+    ```java
+    @SpringBootApplication
+    @EnableConfigServer
+    public class Application {
+     public static void main(String[] args) {
+      SpringApplication.run(Application.class, args);
+     }
+    
+    }
+    ```
+- Definir nas propriedades o caminho onde os arquivos de configuração serão armazenados
+
+`spring.cloud.config.server.git.uri=file://`
+
+- Criar os arquivos de configuração dentro do diretório. Ex: `faculdade-dev.properties`, `faculdade-prd.properties`, etc...
+- Configurar o *Config Client*
+- Instalar a dependência:
+    ```xml
+    <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+    <version>3.1.1</version>
+    </dependency>
+    ```
+- Configurar as propriedades
+    ```
+    spring.config.import=optional:configserver:http://localhost:8888
+    spring.application.name=carro
+    ```
+- Referenciar o perfil de configuração desejada
+    ```
+    spring.profiles.active=dev
+    spring.cloud.config.profile=dev
+    ```
+
