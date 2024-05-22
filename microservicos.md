@@ -1657,3 +1657,94 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     spring.cloud.config.profile=dev
     ```
 
+## Eureka
+- É um servidor de nomes onde os microserviços podem ser registrados
+- Com isso, não é necessário saber o host e porta onde se localizam na integração entre os microserviços
+- Cada serviço deve se registrar no Eureka e deve consultá-lo para acessar os demais 
+
+### Eureka Server
+- Adicionar a dependência
+    ```xml
+    <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+    </dependency>
+    ```
+- Definir as configurações
+    ```properties
+    spring.application.name=naming-server
+    server.port=8761
+    eureka.client.register-with-eureka=false
+    eureka.client.fetch-registry=false
+    ```
+- Adicionar a anotação na classe principal (`@EnableEurekaServer`)
+    ```java
+    @SpringBootApplication
+    @EnableEurekaServer
+    public class Application {
+    
+        public static void main(String[] args) {
+          SpringApplication.run(Application.class, args);
+        }
+    
+    }
+    ```
+- Acessar em `http://localhost:8761`
+### Eureka Cliente - Registro Nome
+- Os serviços devem registrar-se junto ao servidor de nomes
+- Para isso, incluir a dependência
+    ```xml
+    <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+    ```
+- Incluir nas propriedades
+    ```properties
+    server.port=8020
+    spring.application.name=nome_registro
+    ```
+### Eureka Cliente - Acesso ao Serviço
+- Com os clientes registrados no servidor Eureka é possível acessá-los por meio dos nomes definidos em `spring.application.name`
+- Incluir as configurações
+    ```properties
+    spring.application.name=nome_aplicacao
+    eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    eureka.instance.hostname=localhost
+    ```
+- Utilizar o *OpenFeign* para facilicar o acesso aos serviços
+    ```xml
+    <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+    </dependency>
+    ```
+- Habilitar o uso do *OpenFeign*
+    ```java
+    @SpringBootApplication
+    @EnableFeignClients
+    public class Application {
+    
+        public static void main(String[] args) {
+            SpringApplication.run(Application.class, args);
+        }
+    
+    }
+    ```
+- Criar os *proxyes* para realizar as chamadas aos *endpoints*
+    ```java
+    @FeignClient(name = "validador-service", url = "localhost:8020")
+    public interface ValidadorProxy {
+        @GetMapping("/validar/{valor}")
+        public ResponseEntity<Boolean> validar(@PathVariable String valor);
+    }
+    ```
+
+- Injetar os *proxyes*
+    ```java
+    @Autowired
+    private ValidadorProxy validador;
+    @Autowired
+    private CriptografiaProxy criptografia;
+    ```
+
