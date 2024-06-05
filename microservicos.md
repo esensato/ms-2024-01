@@ -1747,4 +1747,33 @@ npx openapicmd typegen http://localhost:8080/v3/api-docs > openapi.d.ts
     @Autowired
     private CriptografiaProxy criptografia;
     ```
+## Efetuando o Deploy
+- Executar em um terminal os comandos:
+    ```powershell
+    ./mvn clean
+    ./mvnw package -f "/Users/esensato/Documents/espm/repo/ms-2024-01/aula/kafka-producer/pom.xml"
+    ```
+- Para executar:
+    ```powershell
+    cd target kafka-producer-0.0.1-SNAPSHOT.jar 
+    java -jar  
+    ```
+- Criar um `Dockerfile` com o conteúdo:
+```dockerfile
+    FROM openjdk:17
+    RUN mkdir /app
+    COPY kafka-producer-0.0.1-SNAPSHOT.jar /app
+    WORKDIR /app
+    RUN cd /app
+    CMD ["java", "-jar", "kafka-producer-0.0.1-SNAPSHOT.jar"]
+```
+- Efetuar o *build* da imagem
+```
+    docker build -t kafka-producer .
+```
+- Executando o *container*
+```
+    docker run -d -p 8080:8080 --name producer kafka-producer
+```
+
 

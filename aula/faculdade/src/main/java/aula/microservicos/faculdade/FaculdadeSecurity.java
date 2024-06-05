@@ -32,7 +32,7 @@ public class FaculdadeSecurity {
 
                 http.authorizeHttpRequests(authz -> authz
                                 // permite o acesso publico ao endpoint /aluno/ping
-                                .requestMatchers("/aluno/ping").hasAnyRole("ALUNO", "ADMIN")
+                                .requestMatchers("/aluno/ping").permitAll()
                                 .requestMatchers("/api/**").permitAll()
                                 .requestMatchers("/faculdade/token/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/h2-console/**").permitAll()

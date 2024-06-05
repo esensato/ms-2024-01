@@ -19,6 +19,12 @@ public class BolsaKafkaController {
     @Autowired
     private BolsaKafkaProducer producer;
 
+    @GetMapping("/producer/ping")
+    public ResponseEntity<String> ping() {
+
+        return new ResponseEntity<String>("PONG", HttpStatus.OK);
+    }
+
     @GetMapping("/producer/v1/{sigla}/{valor}")
     public ResponseEntity<String> producer(@PathVariable String sigla, @PathVariable double valor) {
         // envia para o topico uma mensagem
